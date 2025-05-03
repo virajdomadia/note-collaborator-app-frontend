@@ -4,6 +4,7 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import Pagination from "../components/Pagination";
 import CreateNoteModal from "../components/CreateNoteModal";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -69,13 +70,15 @@ const Dashboard = () => {
           <p>No notes available.</p>
         ) : (
           notes.map((note) => (
-            <div key={note._id} className="p-4 border border-black rounded">
-              <h3 className="text-lg font-bold">{note.title}</h3>
-              <p>{note.content}</p>
-              <p className="text-sm text-gray-500">
-                Last updated: {new Date(note.lastUpdated).toLocaleString()}
-              </p>
-            </div>
+            <Link to={`/notes/${note._id}`} key={note._id}>
+              <div key={note._id} className="p-4 border border-black rounded">
+                <h3 className="text-lg font-bold">{note.title}</h3>
+                <p>{note.content}</p>
+                <p className="text-sm text-gray-500">
+                  Last updated: {new Date(note.lastUpdated).toLocaleString()}
+                </p>
+              </div>
+            </Link>
           ))
         )}
       </div>
