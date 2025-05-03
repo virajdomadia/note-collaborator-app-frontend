@@ -5,10 +5,12 @@ import { debounce } from "lodash";
 import { io } from "socket.io-client";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import CollaboratorModal from "../components/CollaboratorModal";
 
 const NoteEditor = () => {
   const { noteId } = useParams(); // ✅ Corrected from 'id' to 'noteId'
   const [note, setNote] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const socketRef = useRef(null);
   const token = localStorage.getItem("token");
 
@@ -113,6 +115,18 @@ const NoteEditor = () => {
         rows={15}
         style={{ width: "100%", fontSize: "1rem" }}
       />
+      <button
+        onClick={() => setShowShareModal(true)}
+        className="mb-4 px-4 py-2 bg-black text-white rounded"
+      >
+        Share
+      </button>
+      {showShareModal && (
+        <CollaboratorModal
+          noteId={noteId}
+          closeModal={() => setShowShareModal(false)}
+        />
+      )}
 
       <div style={{ marginTop: "1rem" }}>
         <h4>Collaborators:</h4>
