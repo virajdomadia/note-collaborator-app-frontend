@@ -7,29 +7,44 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const NoteEditor = () => {
-  const { noteId } = useParams();
+  const { noteId } = useParams(); // ✅ Corrected from 'id' to 'noteId'
   const [note, setNote] = useState(null);
   const socketRef = useRef(null);
+  const token = localStorage.getItem("token");
 
   // Fetch note on mount
   useEffect(() => {
     const fetchNote = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/notes/${noteId}`
+          `http://localhost:5000/api/notes/${noteId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         setNote(res.data);
       } catch (err) {
         console.error("Error fetching note:", err);
+        if (err.response?.status === 404) {
+          toast.error("Note not found.");
+        } else {
+          toast.error("Failed to load note.");
+        }
       }
     };
 
-    fetchNote();
-  }, [noteId]);
+    if (noteId) {
+      fetchNote();
+    }
+  }, [noteId, token]);
 
   // Setup Socket.io connection
   useEffect(() => {
-    socketRef.current = io("http://localhost:5000"); // Change URL if deployed
+    if (!noteId) return;
+
+    socketRef.current = io("http://localhost:5000");
     socketRef.current.emit("joinNoteRoom", noteId);
 
     socketRef.current.on("noteUpdated", (updatedNote) => {
@@ -50,7 +65,12 @@ const NoteEditor = () => {
       try {
         await axios.put(
           `http://localhost:5000/api/notes/${noteId}`,
-          updatedNote
+          updatedNote,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         toast.success("Note saved");
         socketRef.current.emit("updateNote", updatedNote);
@@ -60,7 +80,6 @@ const NoteEditor = () => {
     }, 1000)
   ).current;
 
-  // Handle input changes
   const handleTitleChange = (e) => {
     const updated = { ...note, title: e.target.value };
     setNote(updated);
