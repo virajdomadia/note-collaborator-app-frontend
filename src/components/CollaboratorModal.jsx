@@ -30,7 +30,7 @@ const CollaboratorModal = ({ noteId, closeModal, onCollaboratorsUpdated }) => {
 
       // Step 1: Get user by email
       const userRes = await axios.get(
-        `http://localhost:5000/api/users/email/${email}`,
+        `https://note-collaborator-app-backend.onrender.com/api/users/email/${email}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -42,7 +42,7 @@ const CollaboratorModal = ({ noteId, closeModal, onCollaboratorsUpdated }) => {
 
       // Step 2: Share note
       await axios.post(
-        `http://localhost:5000/api/notes/${noteId}/share`,
+        `https://note-collaborator-app-backend.onrender.com/api/notes/${noteId}/share`,
         { userId, permission },
         {
           headers: {

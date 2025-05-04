@@ -21,7 +21,7 @@ const NoteEditor = () => {
     const fetchNote = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/notes/${noteId}`,
+          `https://note-collaborator-app-backend.onrender.com/api/notes/${noteId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -67,7 +67,7 @@ const NoteEditor = () => {
     debounce(async (updatedNote) => {
       try {
         await axios.put(
-          `http://localhost:5000/api/notes/${noteId}`,
+          `https://note-collaborator-app-backend.onrender.com/api/notes/${noteId}`,
           updatedNote,
           {
             headers: {
@@ -102,7 +102,7 @@ const NoteEditor = () => {
   const handleRemoveCollaborator = async (collaboratorId) => {
     try {
       await axios.delete(
-        `http://localhost:5000/api/notes/${noteId}/collaborators/${collaboratorId}`,
+        `https://note-collaborator-app-backend.onrender.com/api/notes/${noteId}/collaborators/${collaboratorId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -187,9 +187,12 @@ const NoteEditor = () => {
             onCollaboratorsUpdated={() => {
               // Refetch the note to update collaborators list immediately
               axios
-                .get(`http://localhost:5000/api/notes/${noteId}`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                })
+                .get(
+                  `https://note-collaborator-app-backend.onrender.com/api/notes/${noteId}`,
+                  {
+                    headers: { Authorization: `Bearer ${token}` },
+                  }
+                )
                 .then((res) => setNote(res.data))
                 .catch(() => toast.error("Failed to refresh collaborators"));
             }}
@@ -222,7 +225,7 @@ const NoteEditor = () => {
                     const newPermission = e.target.value;
                     try {
                       await axios.put(
-                        `http://localhost:5000/api/notes/${noteId}/collaborators/${collab.user._id}`,
+                        `https://note-collaborator-app-backend.onrender.com/api/notes/${noteId}/collaborators/${collab.user._id}`,
                         { permission: newPermission },
                         {
                           headers: {

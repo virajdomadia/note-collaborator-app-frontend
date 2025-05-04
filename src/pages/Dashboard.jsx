@@ -28,7 +28,7 @@ const Dashboard = () => {
 
     try {
       const res = await axios.get(
-        `http://localhost:5000/api/notes?page=${currentPage}&tab=${activeTab}`,
+        `https://note-collaborator-app-backend.onrender.com/api/notes?page=${currentPage}&tab=${activeTab}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -80,9 +80,12 @@ const Dashboard = () => {
     if (!token) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/notes/${noteId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://note-collaborator-app-backend.onrender.com/api/notes/${noteId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setNotes(notes.filter((n) => n._id !== noteId));
       toast.success("Note deleted successfully.");
     } catch (err) {
