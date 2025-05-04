@@ -1,4 +1,3 @@
-// src/components/Pagination.jsx
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {

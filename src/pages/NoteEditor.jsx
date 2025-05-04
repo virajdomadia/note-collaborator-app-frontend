@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { debounce } from "lodash";
-import { io } from "socket.io-client";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import CollaboratorModal from "../components/CollaboratorModal";
+import { useSocket } from "../context/SocketContext";
 
 const NoteEditor = () => {
-  const { noteId } = useParams(); // ✅ Corrected from 'id' to 'noteId'
+  const { noteId } = useParams();
   const [note, setNote] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
-  const socketRef = useRef(null);
+  const socket = useSocket();
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+  const currentUser = JSON.parse(localStorage.getItem("user"));
 
   // Fetch note on mount
   useEffect(() => {
@@ -42,14 +44,14 @@ const NoteEditor = () => {
     }
   }, [noteId, token]);
 
-  // Setup Socket.io connection
   useEffect(() => {
-    if (!noteId) return;
+    if (!noteId || !socket) return; // Ensure socket is defined
 
-    socketRef.current = io("http://localhost:5000");
-    socketRef.current.emit("joinNoteRoom", noteId);
+    // Join the note room to receive updates
+    socket.emit("joinNoteRoom", noteId);
 
-    socketRef.current.on("noteUpdated", (updatedNote) => {
+    // Listen for note update events
+    socket.on("noteUpdated", (updatedNote) => {
       if (updatedNote._id === noteId) {
         setNote(updatedNote);
         toast.info("Note updated by collaborator.");
@@ -57,11 +59,10 @@ const NoteEditor = () => {
     });
 
     return () => {
-      socketRef.current.disconnect();
+      socket.off("noteUpdated");
     };
-  }, [noteId]);
+  }, [noteId, socket]);
 
-  // Debounced autosave
   const debouncedSave = useRef(
     debounce(async (updatedNote) => {
       try {
@@ -75,7 +76,7 @@ const NoteEditor = () => {
           }
         );
         toast.success("Note saved");
-        socketRef.current.emit("updateNote", updatedNote);
+        socket.emit("updateNote", updatedNote);
       } catch (err) {
         toast.error("Failed to save note");
       }
@@ -94,52 +95,191 @@ const NoteEditor = () => {
     debouncedSave(updated);
   };
 
-  if (!note) return <p>Loading note...</p>;
+  const handleGoBack = () => {
+    navigate(-1); // Navigate to the previous page
+  };
+
+  const handleRemoveCollaborator = async (collaboratorId) => {
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/notes/${noteId}/collaborators/${collaboratorId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      toast.success("Collaborator removed");
+
+      // Update the collaborators list after removal
+      setNote((prevNote) => ({
+        ...prevNote,
+        collaborators: prevNote.collaborators.filter(
+          (collab) => collab.user._id !== collaboratorId
+        ),
+      }));
+    } catch (err) {
+      toast.error("Failed to remove collaborator");
+    }
+  };
+
+  if (!note)
+    return <p className="text-center text-gray-600">Loading note...</p>;
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "800px", margin: "auto" }}>
-      <h2>Note Editor</h2>
+    <div className="container mx-auto p-6 bg-white shadow-lg rounded-lg max-w-4xl">
+      <div className="mb-6">
+        <button
+          onClick={handleGoBack}
+          className="text-blue-600 hover:text-blue-700 mb-4 inline-flex items-center gap-2"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            className="w-5 h-5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Go Back
+        </button>
+      </div>
 
+      <h2 className="text-3xl font-semibold text-gray-800 mb-6">Edit Note</h2>
+
+      {/* Note Title */}
       <input
         type="text"
         value={note.title}
         onChange={handleTitleChange}
         placeholder="Note title"
-        style={{ fontSize: "1.5rem", width: "100%", marginBottom: "1rem" }}
+        className="w-full p-4 text-2xl border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 mb-4"
       />
 
+      {/* Content Area */}
       <textarea
         value={note.content}
         onChange={handleContentChange}
         placeholder="Write your note..."
         rows={15}
-        style={{ width: "100%", fontSize: "1rem" }}
+        className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 mb-6 min-h-[300px]"
       />
-      <button
-        onClick={() => setShowShareModal(true)}
-        className="mb-4 px-4 py-2 bg-black text-white rounded"
-      >
-        Share
-      </button>
-      {showShareModal && (
-        <CollaboratorModal
-          noteId={noteId}
-          closeModal={() => setShowShareModal(false)}
-        />
-      )}
 
-      <div style={{ marginTop: "1rem" }}>
-        <h4>Collaborators:</h4>
-        <ul>
-          {note.collaborators?.map((user) => (
-            <li key={user._id}>
-              {user.name} ({user.email})
+      {/* Toolbar and Share Button */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={() => setShowShareModal(true)}
+          className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300"
+        >
+          Share with Collaborators
+        </button>
+
+        {showShareModal && (
+          <CollaboratorModal
+            noteId={noteId}
+            closeModal={() => setShowShareModal(false)}
+            onCollaboratorsUpdated={() => {
+              // Refetch the note to update collaborators list immediately
+              axios
+                .get(`http://localhost:5000/api/notes/${noteId}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                })
+                .then((res) => setNote(res.data))
+                .catch(() => toast.error("Failed to refresh collaborators"));
+            }}
+          />
+        )}
+      </div>
+
+      {/* Collaborator List */}
+      <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6">
+        <h4 className="font-semibold text-xl text-gray-700 mb-4">
+          Collaborators:
+        </h4>
+        <ul className="space-y-3">
+          {note.collaborators?.map((collab) => (
+            <li
+              key={collab.user._id}
+              className="flex flex-col md:flex-row md:items-center md:justify-between bg-white p-3 rounded-md shadow border"
+            >
+              <div>
+                <p className="text-gray-700 font-medium">
+                  {collab.user.name} ({collab.user.email})
+                </p>
+              </div>
+
+              <div className="flex items-center mt-2 md:mt-0 space-x-4">
+                {/* Permission dropdown */}
+                <select
+                  value={collab.permission}
+                  onChange={async (e) => {
+                    const newPermission = e.target.value;
+                    try {
+                      await axios.put(
+                        `http://localhost:5000/api/notes/${noteId}/collaborators/${collab.user._id}`,
+                        { permission: newPermission },
+                        {
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                          },
+                        }
+                      );
+                      toast.success("Permission updated");
+
+                      // Update state locally
+                      setNote((prevNote) => ({
+                        ...prevNote,
+                        collaborators: prevNote.collaborators.map((c) =>
+                          c.user._id === collab.user._id
+                            ? { ...c, permission: newPermission }
+                            : c
+                        ),
+                      }));
+                    } catch (err) {
+                      toast.error("Failed to update permission");
+                    }
+                  }}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  disabled={
+                    String(note.createdBy._id) !== String(currentUser._id)
+                  }
+                >
+                  <option value="read">Read</option>
+                  <option value="write">Write</option>
+                </select>
+
+                {/* Remove button */}
+                {note.createdBy._id !== currentUser.id && (
+                  <button
+                    onClick={() => handleRemoveCollaborator(collab.user._id)}
+                    className="text-red-600 hover:text-red-800 text-sm"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
       </div>
 
-      <ToastContainer position="bottom-right" />
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center mb-6 gap-4">
+        <button
+          onClick={() => debouncedSave(note)}
+          className="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 transition duration-300"
+        >
+          Save Changes
+        </button>
+      </div>
+
+      <ToastContainer />
     </div>
   );
 };

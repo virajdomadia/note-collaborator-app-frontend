@@ -1,8 +1,7 @@
-// src/components/CreateNoteModal.jsx
 import { useState } from "react";
 import axios from "axios";
 
-const CreateNoteModal = ({ closeModal }) => {
+const CreateNoteModal = ({ closeModal, onNoteCreated }) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
@@ -19,45 +18,68 @@ const CreateNoteModal = ({ closeModal }) => {
           },
         }
       );
-      closeModal(); // Close modal on successful creation
+      onNoteCreated(); // Fetch latest notes
+      closeModal(); // Close modal
     } catch (err) {
       alert(err.response?.data?.message || "Error creating note");
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded shadow-lg max-w-sm w-full">
-        <h3 className="text-xl font-bold mb-4">Create New Note</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-black px-3 py-2"
-            required
-          />
-          <textarea
-            placeholder="Content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full border border-black px-3 py-2"
-            required
-          />
-          <div className="flex justify-end space-x-4">
+    <div className="fixed inset-0 bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 flex justify-center items-center">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h3 className="text-xl font-semibold text-gray-800 mb-6">
+          Create New Note
+        </h3>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label
+              htmlFor="title"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Title
+            </label>
+            <input
+              type="text"
+              id="title"
+              placeholder="Enter note title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="content"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Content
+            </label>
+            <textarea
+              id="content"
+              placeholder="Enter note content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-4">
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 border border-black rounded"
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-black text-white rounded"
+              className="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300"
             >
-              Create
+              Create Note
             </button>
           </div>
         </form>

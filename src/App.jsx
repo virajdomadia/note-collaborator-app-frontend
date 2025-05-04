@@ -10,33 +10,36 @@ import Signup from "./pages/Signup";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import NoteEditor from "./pages/NoteEditor";
+import { SocketProvider } from "./context/SocketContext";
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/notes/:noteId"
-            element={
-              <ProtectedRoute>
-                <NoteEditor />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
+      <SocketProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notes/:noteId"
+              element={
+                <ProtectedRoute>
+                  <NoteEditor />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </SocketProvider>
     </AuthProvider>
   );
 }
